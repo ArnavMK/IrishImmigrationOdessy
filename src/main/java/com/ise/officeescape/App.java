@@ -1,18 +1,27 @@
 package com.ise.officeescape;
 
+import com.ise.officeescape.controller.GameController;
+import com.ise.officeescape.model.GameManager;
+import com.ise.officeescape.view.GameView;
+
 import javafx.application.Application;
+import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-/**
- * App
- */
-public class App extends Application{
+public class App extends Application {
 
-	@Override
-	public void start(Stage arg0) throws Exception {
-	}
+    @Override
+    public void start(Stage stage) throws Exception {
+        GameManager manager = new GameManager();
+        GameView view = new GameView();
+        GameController controller = new GameController(manager, view);
+
+        stage.setScene(new Scene(view, 1366, 768));
+        stage.setTitle("Irish Immigration Adventure");
+        stage.show();
+    }
 
     public static void main(String[] args) {
-
+        launch(args);
     }
 }

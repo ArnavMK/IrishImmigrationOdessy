@@ -21,7 +21,7 @@ public class Character {
         this.currentRoom = room;
     }
 
-    public void move(String direction) {
+    public void move(Direction direction) {
         Room nextRoom = currentRoom.getExit(direction);
         if (nextRoom != null) {
             currentRoom = nextRoom;

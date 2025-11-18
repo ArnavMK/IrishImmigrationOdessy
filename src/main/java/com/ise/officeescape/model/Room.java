@@ -5,9 +5,11 @@ import java.util.Map;
 
 public class Room {
     private String description;
-    private Map<String, Room> exits; // Map direction to neighboring Room
+    private String name;
+    private Map<Direction, Room> exits; // Map direction to neighboring Room
 
-    public Room(String description) {
+    public Room(String name, String description) {
+        this.name = name;
         this.description = description;
         exits = new HashMap<>();
     }
@@ -15,19 +17,23 @@ public class Room {
     public String getDescription() {
         return description;
     }
+    
+    public String getName() {
+        return name;
+    } 
 
-    public void setExit(String direction, Room neighbor) {
+    public void setExit(Direction direction, Room neighbor) {
         exits.put(direction, neighbor);
     }
 
-    public Room getExit(String direction) {
+    public Room getExit(Direction direction) {
         return exits.get(direction);
     }
 
     public String getExitString() {
         StringBuilder sb = new StringBuilder();
-        for (String direction : exits.keySet()) {
-            sb.append(direction).append(" ");
+        for (Direction direction : exits.keySet()) {
+            sb.append(direction.toString()).append(" ");
         }
         return sb.toString().trim();
     }

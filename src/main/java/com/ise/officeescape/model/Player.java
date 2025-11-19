@@ -1,16 +1,17 @@
 package com.ise.officeescape.model;
 
 /**
- * Player
+ * Represents the player in the game.
+ * The player tracks their current location (room).
  */
 public class Player {
     
     private String name;
     private Room currentRoom;
 
-    public Player(String name) {
+    public Player(String name, Room startRoom) {
         this.name = name;
-        this.currentRoom = RoomManager.instance.getStartRoom();
+        this.currentRoom = startRoom;
     }
     
     public Room getCurrentRoom() {
@@ -18,7 +19,19 @@ public class Player {
     }
     
     public void setCurrentRoom(Room room) {
+        if (room == null) {
+            throw new IllegalArgumentException("Cannot move to null room");
+        }
         this.currentRoom = room;
+    }
+    
+    public boolean move(Direction direction) {
+        Room nextRoom = currentRoom.getExit(direction);
+        if (nextRoom != null) {
+            setCurrentRoom(nextRoom);
+            return true;
+        }
+        return false;
     }
     
     public String getName() {

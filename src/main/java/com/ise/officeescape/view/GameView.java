@@ -15,6 +15,7 @@ public class GameView extends StackPane {
 
     private ImageView backgroundImage;
     private RoomImageMapper roomImageMapper;
+    private DirectionControllerView directionControllerView;
 
     public GameView() {
         this.roomImageMapper = new RoomImageMapper();
@@ -36,7 +37,7 @@ public class GameView extends StackPane {
         
         // Create and add direction controller view
         // StackPane layers children in order - last added is on top
-        DirectionControllerView directionControllerView = new DirectionControllerView();
+        directionControllerView = new DirectionControllerView();
         
         // Position at bottom left with padding (not touching corners)
         StackPane.setAlignment(directionControllerView, javafx.geometry.Pos.BOTTOM_LEFT);
@@ -45,16 +46,26 @@ public class GameView extends StackPane {
         getChildren().add(directionControllerView);
     }
     
+    public DirectionControllerView getDirectionControllerView() {
+        return directionControllerView;
+    }
+
     /**
      * Updates the background image when the player enters a new room.
      * This method is called by the controller when room changes.
      */
     public void updateRoomBackground(Room room) {
+
+        // load the next room image
         Image roomImage = roomImageMapper.loadRoomImage(room);
         if (roomImage != null) {
             backgroundImage.setImage(roomImage);
         }
-        // If image fails to load, background stays as is (or could set a default)
+        
+        // update button states
+        if (room != null) {
+            directionControllerView.updateButtonState(room.getAllExits());
+        }
     }
 }
 

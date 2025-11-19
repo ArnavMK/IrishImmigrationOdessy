@@ -16,33 +16,7 @@ public class RoomImageMapper {
      * The model Room doesn't know about images - this class handles the mapping.
      */
     public String getImagePath(Room room) {
-        if (room == null) {
-            return ASSETS_PATH + "default.png";
-        }
-        
-        String description = room.getDescription().toLowerCase();
-        
-        // Map room descriptions to image filenames
-        if (description.contains("outside")) {
-            return ASSETS_PATH + "outside.png";
-        } else if (description.contains("queue")) {
-            return ASSETS_PATH + "queue.png";
-        } else if (description.contains("security")) {
-            return ASSETS_PATH + "security.png";
-        } else if (description.contains("ticket")) {
-            return ASSETS_PATH + "ticket.png";
-        } else if (description.contains("document")) {
-            return ASSETS_PATH + "documents.png";
-        } else if (description.contains("interview")) {
-            return ASSETS_PATH + "interview.png";
-        } else if (description.contains("approval")) {
-            return ASSETS_PATH + "approval.png";
-        } else if (description.contains("exit")) {
-            return ASSETS_PATH + "exit.png";
-        }
-        
-        // Default fallback
-        return ASSETS_PATH + "default.png";
+       return ASSETS_PATH + room.getName() + ".png";
     }
     
     /**

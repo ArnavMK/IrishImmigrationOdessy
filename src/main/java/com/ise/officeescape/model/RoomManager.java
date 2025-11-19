@@ -1,16 +1,18 @@
 package com.ise.officeescape.model;
 
 import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * Manages the room graph/structure of the game.
+ * The current room is tracked by the Player, not here.
+ * This class is responsible for creating and linking rooms.
+ */
 public class RoomManager {
-    public static RoomManager instance;
-
-    private ArrayList<Room> rooms;
+    private List<Room> rooms;
     private Room startRoom;
-    private int currentRoomIndex = 0;
 
     public RoomManager() {
-        instance = this;
         initialiseRooms();
     }
 
@@ -18,35 +20,37 @@ public class RoomManager {
         rooms = new ArrayList<>();
 
         Room outside = new Room("outside", "Outside the Irish Immigration Office");
-        Room queue = new Room("queue","The Queue Room - A test of patience");
+        Room queue = new Room("queue", "The Queue Room - A test of patience");
         Room security = new Room("security", "Security Check - Metal detector and suspicious stares");
         Room ticket = new Room("ticket", "Ticket Machine Room - Take a number and cry");
-        Room documents = new Room("documents", "Document Verification Room - Missing photocopy simulator");
+        Room biometrics = new Room("biometrics", "Biometric Verification Room - A test of identity");
         Room interview = new Room("interview", "Interview Room - The final bureaucratic boss fight");
         Room approval = new Room("approval", "Approval Room - The land of the sacred green stamp");
+        Room backrrom = new Room("backroom", "Backroom");
         Room exit = new Room("exit", "Exit - Freedom! You escaped the office.");
 
+        // Set up room connections
         // Outside
-        outside.setExit(Direction.forward, queue);
+        outside.setExit(Direction.forward, ticket);
 
         // Queue Room
-        queue.setExit(Direction.backwards, outside);
+        queue.setExit(Direction.backwards, ticket);
         queue.setExit(Direction.forward, security);
 
         // Security Room
-        security.setExit(Direction.backwards, queue);
-        security.setExit(Direction.forward, ticket);
+        security.setExit(Direction.backwards, ticket);
+        security.setExit(Direction.forward, biometrics);
 
         // Ticket Room
-        ticket.setExit(Direction.backwards, security);
-        ticket.setExit(Direction.forward, documents);
+        ticket.setExit(Direction.backwards, outside);
+        ticket.setExit(Direction.forward, queue);
 
         // Document Room
-        documents.setExit(Direction.backwards, ticket);
-        documents.setExit(Direction.forward, interview);
+        biometrics.setExit(Direction.backwards, security);
+        biometrics.setExit(Direction.forward, interview);
 
         // Interview Room
-        interview.setExit(Direction.backwards, documents);
+        interview.setExit(Direction.backwards, biometrics);
         interview.setExit(Direction.forward, approval);
 
         // Approval Room
@@ -56,12 +60,12 @@ public class RoomManager {
         // Exit Room
         exit.setExit(Direction.backwards, approval);
 
-        // Add all rooms to list (ordered)
+        // Store all rooms for reference
         rooms.add(outside);
+        rooms.add(ticket);
         rooms.add(queue);
         rooms.add(security);
-        rooms.add(ticket);
-        rooms.add(documents);
+        rooms.add(biometrics);
         rooms.add(interview);
         rooms.add(approval);
         rooms.add(exit);
@@ -69,15 +73,23 @@ public class RoomManager {
         startRoom = outside;
     }
 
+    /**
+     * Gets the starting room where the player begins the game.
+     */
     public Room getStartRoom() {
         return startRoom;
     }
 
-    public Room getNextRoom() {
-        currentRoomIndex ++;
-        return rooms.get(currentRoomIndex);
+    /**
+     * Gets all rooms in the game (for reference/debugging).
+     */
+    public List<Room> getAllRooms() {
+        return new ArrayList<>(rooms); // Return a copy to prevent external modification
     }
 
+    /**
+     * Gets the total number of rooms in the game.
+     */
     public int getRoomCount() {
         return rooms.size();
     }

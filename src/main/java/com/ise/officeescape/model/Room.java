@@ -1,6 +1,7 @@
 package com.ise.officeescape.model;
 
 import java.util.HashMap;
+import java.util.*;
 import java.util.Map;
 
 public class Room {
@@ -21,7 +22,7 @@ public class Room {
     public String getName() {
         return name;
     } 
-
+    
     public void setExit(Direction direction, Room neighbor) {
         exits.put(direction, neighbor);
     }
@@ -37,7 +38,11 @@ public class Room {
         }
         return sb.toString().trim();
     }
-
+     
+    public Set<Direction> getAllExits() {
+        return exits.keySet();
+    }
+    
     public String getLongDescription() {
         return "You are " + description + ".\nExits: " + getExitString();
     }

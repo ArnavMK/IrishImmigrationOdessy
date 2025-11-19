@@ -1,7 +1,6 @@
 package com.ise.officeescape;
 
 import com.ise.officeescape.controller.GameController;
-import com.ise.officeescape.model.GameManager;
 import com.ise.officeescape.view.GameView;
 
 import javafx.application.Application;
@@ -12,9 +11,8 @@ public class App extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        GameManager manager = new GameManager();
         GameView view = new GameView();
-        GameController controller = new GameController(manager, view);
+        GameController controller = new GameController(view);
 
         stage.setScene(new Scene(view, 1366, 768));
         stage.setTitle("Irish Immigration Adventure");

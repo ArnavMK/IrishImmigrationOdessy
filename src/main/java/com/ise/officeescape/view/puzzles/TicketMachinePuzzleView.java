@@ -11,6 +11,9 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.animation.FadeTransition;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -442,9 +445,12 @@ public class TicketMachinePuzzleView extends PuzzleView {
             // Solve the puzzle
             InteractionResult result = puzzle.interact("complete", null);
             if (result.getType() == InteractionResult.ResultType.PUZZLE_SOLVED) {
-                // Auto-close after a delay
+                // Show ticket item overlay
+                showTicketItemOverlay();
+                
+                // Auto-close after a delay (increased to allow overlay to be seen)
                 javafx.animation.Timeline timeline = new javafx.animation.Timeline(
-                    new javafx.animation.KeyFrame(javafx.util.Duration.seconds(2), e -> {
+                    new javafx.animation.KeyFrame(javafx.util.Duration.seconds(3), e -> {
                         OnPuzzleSolved.invoke(this, new OnPuzzleSolvedEventArgs(puzzle.getId(), result));
                     })
                 );
@@ -477,5 +483,71 @@ public class TicketMachinePuzzleView extends PuzzleView {
             });
             optionsContainer.getChildren().add(retryButton);
         }
+    }
+    
+    /**
+     * Shows an overlay displaying the ticket item that was obtained.
+     */
+    private void showTicketItemOverlay() {
+        // Create overlay background (semi-transparent dark)
+        Rectangle overlayBackground = new Rectangle();
+        overlayBackground.setFill(Color.rgb(0, 0, 0, 0.8));
+        overlayBackground.widthProperty().bind(widthProperty());
+        overlayBackground.heightProperty().bind(heightProperty());
+        
+        // Create container for the ticket item display
+        VBox ticketContainer = new VBox(20);
+        ticketContainer.setAlignment(Pos.CENTER);
+        ticketContainer.setPadding(new Insets(30));
+        ticketContainer.setMaxWidth(400);
+        ticketContainer.setStyle(
+            "-fx-background-color: rgba(43, 43, 43, 0.95); " +
+            "-fx-background-radius: 15; " +
+            "-fx-border-color: #4CAF50; " +
+            "-fx-border-width: 3; " +
+            "-fx-border-radius: 15;"
+        );
+        
+        // Load and display ticket item image
+        ImageView ticketImageView = new ImageView();
+        try {
+            Image ticketImage = new Image(getClass().getResourceAsStream("/com/ise/officeescape/assets/ticketItem.png"));
+            ticketImageView.setImage(ticketImage);
+            ticketImageView.setPreserveRatio(true);
+            ticketImageView.setFitWidth(200);
+            ticketImageView.setFitHeight(200);
+            ticketImageView.setSmooth(true);
+        } catch (Exception e) {
+            System.err.println("Could not load ticket item image: " + e.getMessage());
+        }
+        
+        // Label showing you got the ticket
+        Label ticketLabel = new Label("Ticket Obtained!");
+        ticketLabel.setStyle(
+            "-fx-font-size: 24px; " +
+            "-fx-text-fill: #4CAF50; " +
+            "-fx-font-weight: bold;"
+        );
+        
+        ticketContainer.getChildren().addAll(ticketImageView, ticketLabel);
+        
+        // Create StackPane to center the ticket container
+        StackPane overlayPane = new StackPane();
+        overlayPane.setAlignment(Pos.CENTER);
+        overlayPane.prefWidthProperty().bind(widthProperty());
+        overlayPane.prefHeightProperty().bind(heightProperty());
+        overlayPane.getChildren().addAll(overlayBackground, ticketContainer);
+        
+        // Add overlay to the view (on top of everything)
+        getChildren().add(overlayPane);
+        
+        // Animate the overlay appearance (fade in)
+        overlayPane.setOpacity(0);
+        FadeTransition fadeIn = new FadeTransition(
+            javafx.util.Duration.millis(500), overlayPane
+        );
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+        fadeIn.play();
     }
 }

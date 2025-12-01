@@ -9,6 +9,7 @@ module com.ise.officeescape {
     
     exports com.ise.officeescape;
     exports com.ise.officeescape.view;
+    exports com.ise.officeescape.view.puzzles;
     exports com.ise.officeescape.controller;
     exports com.ise.officeescape.model;
     exports com.ise.officeescape.model.puzzles;

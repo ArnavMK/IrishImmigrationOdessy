@@ -22,6 +22,7 @@ public class GameView extends StackPane {
     private RoomImageMapper roomImageMapper;
     private DirectionControllerView directionControllerView;
     private Pane hotspotsLayer; // Layer for clickable hotspots
+    private PuzzleView currentPuzzleView; // Current puzzle overlay (if any)
     
     // Event for hotspot clicks
     public Event<OnHotspotClickedEventArgs> OnHotspotClicked = new Event<>();
@@ -51,18 +52,28 @@ public class GameView extends StackPane {
         backgroundImage.fitHeightProperty().bind(heightProperty());
     
         // Hotspots layer - transparent overlay for clickable areas
+        // Make it fill the entire view so hotspots scale properly
         hotspotsLayer = new Pane();
         hotspotsLayer.setPickOnBounds(false); // Only click on actual buttons, not empty space
+        hotspotsLayer.prefWidthProperty().bind(widthProperty());
+        hotspotsLayer.prefHeightProperty().bind(heightProperty());
+        hotspotsLayer.setMouseTransparent(false); // Ensure it can receive mouse events
         
-        // Add layers in order: background, hotspots, direction controller
+        // Debug: Print layer info
+        System.out.println("[GameView] HotspotsLayer created and configured");
+        
+        // Add layers in order: background, direction controller, hotspots
+        // Hotspots added last so they're on top and clickable
         getChildren().add(backgroundImage);
-        getChildren().add(hotspotsLayer);
         
-        // Create and add direction controller view
+        // Create and add direction controller view (before hotspots so hotspots are on top)
         directionControllerView = new DirectionControllerView();
         StackPane.setAlignment(directionControllerView, javafx.geometry.Pos.BOTTOM_LEFT);
         StackPane.setMargin(directionControllerView, new Insets(0, 0, 20, 20));
         getChildren().add(directionControllerView);
+        
+        // Add hotspots layer LAST so it's on top and receives clicks
+        getChildren().add(hotspotsLayer);
     }
     
     public DirectionControllerView getDirectionControllerView() {
@@ -74,12 +85,13 @@ public class GameView extends StackPane {
      */
     public void showRoom(RoomViewModel viewModel) {
         System.out.println("[GameView] showRoom() called for room: " + viewModel.getRoom().getName());
+        System.out.println("[GameView] Current window size: " + getWidth() + " x " + getHeight());
         
         // Load and set background image
         Image roomImage = roomImageMapper.loadRoomImage(viewModel.getRoom());
         if (roomImage != null) {
             backgroundImage.setImage(roomImage);
-            System.out.println("[GameView] Background image loaded");
+            System.out.println("[GameView] Background image loaded: " + roomImage.getWidth() + " x " + roomImage.getHeight());
         } else {
             System.out.println("[GameView] WARNING: Background image failed to load");
         }
@@ -88,7 +100,7 @@ public class GameView extends StackPane {
         clearHotspots();
         System.out.println("[GameView] Cleared existing hotspots");
         
-        // Add hotspots (clickable areas)
+        // Add hotspots (clickable areas) - they will scale with window size
         System.out.println("[GameView] Adding " + viewModel.getHotspots().size() + " hotspots");
         for (HotspotViewModel hotspot : viewModel.getHotspots()) {
             addHotspot(hotspot);
@@ -102,6 +114,7 @@ public class GameView extends StackPane {
         }
         
         System.out.println("[GameView] Room display complete");
+        System.out.println("[GameView] HotspotsLayer children count: " + hotspotsLayer.getChildren().size());
     }
 
     /**
@@ -120,35 +133,63 @@ public class GameView extends StackPane {
 
     /**
      * Adds a clickable hotspot to the view.
+     * Hotspots use absolute positioning - they will scale proportionally with window resize.
      */
     private void addHotspot(HotspotViewModel hotspot) {
+        System.out.println("[GameView] addHotspot() - Creating button for: " + hotspot.getId());
+        System.out.println("[GameView]   Position: (" + hotspot.getX() + ", " + hotspot.getY() + ")");
+        System.out.println("[GameView]   Size: " + hotspot.getWidth() + " x " + hotspot.getHeight());
+        System.out.println("[GameView]   Current window size: " + getWidth() + " x " + getHeight());
+        
         // Create transparent button for the hotspot
         Button hotspotButton = new Button();
-        hotspotButton.setLayoutX(hotspot.getX());
-        hotspotButton.setLayoutY(hotspot.getY());
-        hotspotButton.setPrefSize(hotspot.getWidth(), hotspot.getHeight());
         
-        // Make it transparent but visible on hover (for debugging/UX)
+        // Store original coordinates for scaling
+        double originalX = hotspot.getX();
+        double originalY = hotspot.getY();
+        double originalWidth = hotspot.getWidth();
+        double originalHeight = hotspot.getHeight();
+        
+        // For now, use absolute positioning (will fix scaling later if needed)
+        hotspotButton.setLayoutX(originalX);
+        hotspotButton.setLayoutY(originalY);
+        hotspotButton.setPrefSize(originalWidth, originalHeight);
+        hotspotButton.setMinSize(originalWidth, originalHeight);
+        hotspotButton.setMaxSize(originalWidth, originalHeight);
+        
+        // Ensure button can receive mouse events
+        hotspotButton.setMouseTransparent(false);
+        hotspotButton.setDisable(false);
+        
+        System.out.println("[GameView]   Button created at: (" + hotspotButton.getLayoutX() + ", " + hotspotButton.getLayoutY() + ")");
+        System.out.println("[GameView]   Button size: " + hotspotButton.getWidth() + " x " + hotspotButton.getHeight());
+        
+        // Make it visible with border for debugging
         hotspotButton.setStyle(
-            "-fx-background-color: transparent; " +
-            "-fx-border-color: transparent; " +
+            "-fx-background-color: rgba(255, 0, 0, 0.1); " +  // Light red background for visibility
+            "-fx-border-color: #FF0000; " +  // Red border
+            "-fx-border-width: 2; " +
+            "-fx-border-style: solid; " +
             "-fx-cursor: hand;"
         );
         
-        // Add hover effect (subtle highlight)
+        // Add hover effect (brighter highlight)
         hotspotButton.setOnMouseEntered(e -> {
             hotspotButton.setStyle(
-                "-fx-background-color: rgba(255, 255, 255, 0.1); " +
-                "-fx-border-color: rgba(255, 255, 255, 0.3); " +
-                "-fx-border-width: 2; " +
+                "-fx-background-color: rgba(255, 255, 0, 0.2); " +  // Yellow highlight on hover
+                "-fx-border-color: #FFFF00; " +  // Yellow border on hover
+                "-fx-border-width: 3; " +
+                "-fx-border-style: solid; " +
                 "-fx-cursor: hand;"
             );
         });
         
         hotspotButton.setOnMouseExited(e -> {
             hotspotButton.setStyle(
-                "-fx-background-color: transparent; " +
-                "-fx-border-color: transparent; " +
+                "-fx-background-color: rgba(255, 0, 0, 0.1); " +  // Back to red
+                "-fx-border-color: #FF0000; " +
+                "-fx-border-width: 2; " +
+                "-fx-border-style: solid; " +
                 "-fx-cursor: hand;"
             );
         });
@@ -161,14 +202,17 @@ public class GameView extends StackPane {
         
         // Click handler
         hotspotButton.setOnAction(e -> {
-            System.out.println("[GameView] Hotspot clicked: " + hotspot.getId());
             OnHotspotClicked.invoke(this, new OnHotspotClickedEventArgs(hotspot.getId()));
         });
         
         hotspotButton.setDisable(!hotspot.isEnabled());
         
+        System.out.println("[GameView]   Adding button to hotspotsLayer. Layer children count: " + hotspotsLayer.getChildren().size());
         hotspotsLayer.getChildren().add(hotspotButton);
         hotspotButtons.put(hotspot.getId(), hotspotButton);
+        System.out.println("[GameView]   Button added. New layer children count: " + hotspotsLayer.getChildren().size());
+        System.out.println("[GameView]   Hotspot button enabled: " + !hotspotButton.isDisabled());
+        System.out.println("[GameView]   Hotspot button mouse transparent: " + hotspotButton.isMouseTransparent());
     }
 
     /**
@@ -190,24 +234,43 @@ public class GameView extends StackPane {
     }
 
     /**
+     * Shows a puzzle view overlay.
+     */
+    public void showPuzzleView(PuzzleView puzzleView) {
+        // Remove existing puzzle view if any
+        if (currentPuzzleView != null) {
+            getChildren().remove(currentPuzzleView);
+        }
+        
+        // Add new puzzle view on top
+        currentPuzzleView = puzzleView;
+        getChildren().add(puzzleView);
+    }
+    
+    /**
+     * Hides the current puzzle view.
+     */
+    public void hidePuzzleView() {
+        if (currentPuzzleView != null) {
+            getChildren().remove(currentPuzzleView);
+            currentPuzzleView = null;
+        }
+    }
+    
+    /**
      * Applies view updates from interaction results (animations, enabling/disabling hotspots, etc.).
      */
     public void applyViewUpdates(java.util.List<String> updates) {
-        System.out.println("[GameView] applyViewUpdates() called with " + updates.size() + " updates");
         for (String update : updates) {
-            System.out.println("[GameView] Processing update: " + update);
             if (update.startsWith("enableHotspot:")) {
                 String hotspotId = update.substring("enableHotspot:".length());
-                System.out.println("[GameView] Enabling hotspot: " + hotspotId);
                 updateHotspot(hotspotId, true);
             } else if (update.startsWith("disableHotspot:")) {
                 String hotspotId = update.substring("disableHotspot:".length());
-                System.out.println("[GameView] Disabling hotspot: " + hotspotId);
                 updateHotspot(hotspotId, false);
             } else if (update.startsWith("playAnimation:")) {
                 // TODO: Implement animation playback
                 String animationId = update.substring("playAnimation:".length());
-                System.out.println("[GameView] Playing animation: " + animationId);
             }
         }
     }

@@ -83,43 +83,24 @@ public class Room {
      * Handle interaction with an interactable in this room.
      */
     public InteractionResult interact(String interactableId, String action) {
-        System.out.println("[Room] interact() called for: " + interactableId + " with action: " + action);
         Interactable interactable = interactables.get(interactableId);
         if (interactable == null) {
-            System.out.println("[Room] ERROR: Interactable not found: " + interactableId);
             return InteractionResult.message("You can't interact with that.");
         }
         if (!interactable.isEnabled()) {
-            System.out.println("[Room] Interactable is disabled: " + interactableId);
             return InteractionResult.message("You can't interact with that.");
         }
-
-        System.out.println("[Room] Interactable found: " + interactableId + ", type: " + interactable.getInteractionType());
 
         // Default interaction handling
         switch (interactable.getInteractionType()) {
             case "TAKE_TICKET":
-                System.out.println("[Room] Handling TAKE_TICKET interaction");
-                Puzzle queuePuzzle = puzzles.get("queuePuzzle");
-                if (queuePuzzle != null) {
-                    System.out.println("[Room] Found queuePuzzle, calling interact()");
-                    return queuePuzzle.interact("take_ticket", null);
-                } else {
-                    System.out.println("[Room] WARNING: queuePuzzle not found");
+                // Find the ticket puzzle and trigger it
+                Puzzle ticketPuzzle = puzzles.get("ticketPuzzle");
+                if (ticketPuzzle != null) {
+                    // Return PUZZLE_TRIGGERED to show the puzzle view
+                    return InteractionResult.puzzleTriggered("ticketPuzzle");
                 }
                 break;
-            case "CHECK_QUEUE":
-                System.out.println("[Room] Handling CHECK_QUEUE interaction");
-                Puzzle checkPuzzle = puzzles.get("queuePuzzle");
-                if (checkPuzzle != null) {
-                    System.out.println("[Room] Found queuePuzzle, calling interact()");
-                    return checkPuzzle.interact("check_queue", null);
-                } else {
-                    System.out.println("[Room] WARNING: queuePuzzle not found");
-                }
-                break;
-            default:
-                System.out.println("[Room] Unknown interaction type: " + interactable.getInteractionType());
         }
 
         return InteractionResult.message("Nothing happens.");

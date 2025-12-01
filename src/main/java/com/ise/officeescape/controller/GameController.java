@@ -4,12 +4,14 @@ import com.ise.officeescape.eventSystem.*;
 import com.ise.officeescape.model.Direction;
 import com.ise.officeescape.model.InteractionResult;
 import com.ise.officeescape.model.Player;
+import com.ise.officeescape.model.Puzzle;
 import com.ise.officeescape.model.Room;
 import com.ise.officeescape.model.RoomManager;
 import com.ise.officeescape.service.RoomDataService;
 import com.ise.officeescape.view.DirectionControllerView.OnDirectionButtonPressedArgs;
 import com.ise.officeescape.view.GameView;
 import com.ise.officeescape.view.GameView.OnHotspotClickedEventArgs;
+import com.ise.officeescape.view.PuzzleView;
 import com.ise.officeescape.view.RoomViewModel;
 
 public class GameController {
@@ -75,17 +77,16 @@ public class GameController {
      * Processes interactions with room elements.
      */
     private void onHotspotClicked(Object sender, OnHotspotClickedEventArgs args) {
-        System.out.println("[GameController] onHotspotClicked() called for hotspot: " + args.hotspotId);
         Room currentRoom = getCurrentRoom();
         if (currentRoom == null) {
-            System.out.println("[GameController] ERROR: Current room is null");
             return;
         }
 
-        System.out.println("[GameController] Interacting with hotspot in room: " + currentRoom.getName());
         // Interact with the hotspot
         InteractionResult result = currentRoom.interact(args.hotspotId, "click");
-        System.out.println("[GameController] Interaction result type: " + result.getType());
+        
+        // Single print statement for interaction
+        System.out.println("Interaction: " + args.hotspotId + " -> " + result.getType());
         
         // Process the result
         handleInteractionResult(result);
@@ -95,50 +96,48 @@ public class GameController {
      * Processes the result of an interaction.
      */
     private void handleInteractionResult(InteractionResult result) {
-        System.out.println("[GameController] handleInteractionResult() called, type: " + result.getType());
-        
         switch (result.getType()) {
             case MESSAGE:
-                System.out.println("[GameController] MESSAGE: " + result.getMessage());
+                if (result.getMessage() != null) {
+                    System.out.println(result.getMessage());
+                }
                 break;
                 
             case PUZZLE_SOLVED:
-                System.out.println("[GameController] PUZZLE_SOLVED: " + result.getPuzzleId());
+                // Hide puzzle view
+                view.hidePuzzleView();
                 // Apply view updates (animations, enable/disable hotspots)
                 view.applyViewUpdates(result.getViewUpdates());
                 break;
                 
             case PUZZLE_TRIGGERED:
-                System.out.println("[GameController] PUZZLE_TRIGGERED: " + result.getPuzzleId());
+                // Show puzzle view
+                showPuzzleView(result.getPuzzleId());
                 break;
                 
             case ITEM_OBTAINED:
-                System.out.println("[GameController] ITEM_OBTAINED: " + result.getItemId());
+                System.out.println("Item obtained: " + result.getItemId());
                 break;
                 
             case DOOR_UNLOCKED:
-                System.out.println("[GameController] DOOR_UNLOCKED to: " + result.getNextRoomId());
+                System.out.println("Door unlocked to: " + result.getNextRoomId());
                 // Could automatically move player
                 break;
                 
             case DIALOGUE:
-                System.out.println("[GameController] DIALOGUE:");
                 for (String line : result.getDialogueLines()) {
-                    System.out.println("  - " + line);
+                    System.out.println(line);
                 }
                 break;
                 
             case NONE:
-                System.out.println("[GameController] NONE - No action needed");
+                // No action needed
                 break;
         }
         
         // Apply any view updates
         if (!result.getViewUpdates().isEmpty()) {
-            System.out.println("[GameController] Applying " + result.getViewUpdates().size() + " view updates");
             view.applyViewUpdates(result.getViewUpdates());
-        } else {
-            System.out.println("[GameController] No view updates to apply");
         }
     }
 
@@ -203,6 +202,41 @@ public class GameController {
 
     public RoomManager getRoomManager() {
         return roomManager;
+    }
+    
+    /**
+     * Shows a puzzle view for the given puzzle ID.
+     */
+    private void showPuzzleView(String puzzleId) {
+        Room currentRoom = getCurrentRoom();
+        if (currentRoom == null) {
+            return;
+        }
+        
+        Puzzle puzzle = currentRoom.getPuzzle(puzzleId);
+        if (puzzle == null) {
+            return;
+        }
+        
+        // Create puzzle-specific view based on puzzle ID
+        PuzzleView puzzleView;
+        if (puzzleId.equals("ticketPuzzle")) {
+            puzzleView = new com.ise.officeescape.view.puzzles.TicketMachinePuzzleView(puzzle);
+        } else {
+            puzzleView = new PuzzleView(puzzle);
+        }
+        
+        // Set up puzzle view event handlers
+        puzzleView.OnPuzzleSolved.addListener((sender, args) -> {
+            // Use the result that was already computed in the puzzle view
+            handleInteractionResult(args.result);
+        });
+        
+        puzzleView.OnPuzzleClosed.addListener((sender, args) -> {
+            view.hidePuzzleView();
+        });
+        
+        view.showPuzzleView(puzzleView);
     }
 }
 

@@ -15,6 +15,9 @@ import com.ise.officeescape.view.PuzzleView;
 import com.ise.officeescape.view.RoomViewModel;
 
 public class GameController {
+
+    public static GameController instance; 
+
     private final GameView view;
     private final Player player;
     private final RoomManager roomManager;
@@ -33,9 +36,15 @@ public class GameController {
         this.roomManager = new RoomManager();
         this.roomDataService = new RoomDataService();
         this.player = new Player("Player", roomManager.getStartRoom());
+        GameController.instance = this;
 
         initializeView();
         setupEventSubscriptions();
+        
+        // Set up inventory change callback to refresh inventory view when items are moved
+        view.setInventoryChangeCallback(() -> {
+            view.updateInventory(player.getInventory(), getCurrentRoom().getInventory());
+        });
     }
 
     /**
@@ -104,10 +113,14 @@ public class GameController {
                 break;
                 
             case PUZZLE_SOLVED:
-                // Hide puzzle view
                 view.hidePuzzleView();
-                // Apply view updates (animations, enable/disable hotspots)
                 view.applyViewUpdates(result.getViewUpdates());
+                if (result.getItem() != null) {
+                    player.getInventory().addItem(result.getItem());
+                    System.out.println("Item obtained: " + result.getItem().getName());
+                    // Update inventory view if it's visible
+                    view.updateInventory(player.getInventory(), getCurrentRoom().getInventory());
+                }
                 break;
                 
             case PUZZLE_TRIGGERED:
@@ -116,7 +129,15 @@ public class GameController {
                 break;
                 
             case ITEM_OBTAINED:
-                System.out.println("Item obtained: " + result.getItemId());
+                // Add item to player inventory
+                if (result.getItem() != null) {
+                    player.getInventory().addItem(result.getItem());
+                    System.out.println("Item obtained: " + result.getItem().getName());
+                    // Update inventory view if it's visible
+                    view.updateInventory(player.getInventory(), getCurrentRoom().getInventory());
+                } else if (result.getItemId() != null) {
+                    System.out.println("Item obtained: " + result.getItemId() + " (item object not provided)");
+                }
                 break;
                 
             case DOOR_UNLOCKED:
@@ -186,6 +207,9 @@ public class GameController {
         // Show the room in the view
         view.showRoom(viewModel);
         System.out.println("[GameController] Room display initiated");
+        
+        // Update inventory view with current inventories
+        view.updateInventory(player.getInventory(), room.getInventory());
     }
 
     /**
@@ -218,21 +242,31 @@ public class GameController {
             return;
         }
         
+        // Check if puzzle can be started
+        if (!puzzle.canStart(player)) {
+            // Puzzle cannot be started - show message to user
+            System.out.println("You cannot start this puzzle right now.");
+            // Could show a message dialog here if you have UI for that
+            return;
+        }
+        
         // Create puzzle-specific view based on puzzle ID
         PuzzleView puzzleView;
         if (puzzleId.equals("ticketPuzzle")) {
             puzzleView = new com.ise.officeescape.view.puzzles.TicketMachinePuzzleView(puzzle);
         } else {
-            puzzleView = new PuzzleView(puzzle);
+            // No view implementation for this puzzle type
+            System.err.println("No puzzle view implementation for puzzle: " + puzzleId);
+            return;
         }
         
-        // Set up puzzle view event handlers
-        puzzleView.OnPuzzleSolved.addListener((sender, args) -> {
-            // Use the result that was already computed in the puzzle view
+        // Set up puzzle event handlers
+        puzzle.OnPuzzleSolved.addListener((sender, args) -> {
+            // Use the result that was already computed in the puzzle
             handleInteractionResult(args.result);
         });
         
-        puzzleView.OnPuzzleClosed.addListener((sender, args) -> {
+        puzzle.OnPuzzleClosed.addListener((sender, args) -> {
             view.hidePuzzleView();
         });
         

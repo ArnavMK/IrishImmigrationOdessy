@@ -22,11 +22,11 @@ public class RoomDataService {
         // Configure room-specific data
         switch (roomId) {
             case "ticket":
-                System.out.println("[RoomDataService] Setting up ticket room with puzzles and interactables");
-                setupTicketRoom(room, viewModel);
-                break;
+            System.out.println("[RoomDataService] Setting up ticket room with puzzles and interactables");
+            setupTicketRoom(room, viewModel);
+            break;
             default:
-                System.out.println("[RoomDataService] No special setup for room: " + roomId);
+            System.out.println("[RoomDataService] No special setup for room: " + roomId);
             // Add other rooms here as needed
         }
 
@@ -44,11 +44,16 @@ public class RoomDataService {
      */
     private void setupTicketRoom(Room room, RoomViewModel viewModel) {
         System.out.println("[RoomDataService] Setting up ticket room with hotspots and puzzles");
-        
+
         // Add puzzle first (needed for interactions)
         Puzzle ticketPuzzle = new TicketPuzzle();
         room.addPuzzle(ticketPuzzle);
         System.out.println("[RoomDataService] Added puzzle: ticketPuzzle");
+
+        // Add some items to room inventory
+        room.getInventory().addItem(new Item("bananaPeel", "A slippery banana peel, watch your step!"));
+        room.getInventory().addItem(new Item("popsicle", "A refreshing popsicle, perfect for a hot day"));
+        System.out.println("[RoomDataService] Added items to room inventory");
 
         // Define hotspots - Interactables are created automatically!
         // Just use this one method and it handles both view and model
@@ -60,7 +65,7 @@ public class RoomDataService {
             "TAKE_TICKET"
         );
     }
-    
+
     /**
      * Automatically creates an Interactable model object from a HotspotViewModel.
      * This keeps hotspots as the single source of truth.
@@ -71,7 +76,7 @@ public class RoomDataService {
         room.addInteractable(interactable);
         System.out.println("[RoomDataService] Auto-created Interactable from hotspot: " + hotspot.getId());
     }
-    
+
     /**
      * Convenience method: Creates a hotspot and automatically creates its Interactable.
      * This is the recommended way to add interactive elements to rooms.
@@ -87,8 +92,8 @@ public class RoomDataService {
      * @param interactionType Type of interaction (e.g., "TAKE_TICKET", "OPEN_DOOR")
      */
     private void addInteractables(Room room, RoomViewModel viewModel, 
-            String id, double x, double y, double width, double height, 
-            String hoverText, String interactionType) {
+        String id, double x, double y, double width, double height, 
+        String hoverText, String interactionType) {
         HotspotViewModel hotspot = new HotspotViewModel(id, x, y, width, height, hoverText, interactionType);
         viewModel.addHotspot(hotspot);
         createInteractableFromHotspot(room, hotspot);

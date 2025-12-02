@@ -1,5 +1,7 @@
 package com.ise.officeescape.model;
 
+import java.security.KeyStore.PrivateKeyEntry;
+
 /**
  * Represents the player in the game.
  * The player tracks their current location (room).
@@ -8,10 +10,12 @@ public class Player {
     
     private String name;
     private Room currentRoom;
+    private Inventory inventory;
 
     public Player(String name, Room startRoom) {
         this.name = name;
         this.currentRoom = startRoom;
+        this.inventory = new Inventory();
     }
     
     public Room getCurrentRoom() {
@@ -36,6 +40,10 @@ public class Player {
     
     public String getName() {
         return name;
+    }
+
+    public Inventory getInventory() {
+        return inventory;
     }
 }
 

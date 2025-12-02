@@ -2,6 +2,7 @@ package com.ise.officeescape.view.puzzles;
 
 import com.ise.officeescape.model.InteractionResult;
 import com.ise.officeescape.model.Puzzle;
+import com.ise.officeescape.model.puzzles.TicketPuzzle;
 import com.ise.officeescape.view.PuzzleView;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -15,9 +16,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.animation.FadeTransition;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Puzzle view for the ticket machine quiz.
  * 
@@ -28,40 +26,25 @@ import java.util.List;
  */
 public class TicketMachinePuzzleView extends PuzzleView {
     
-    private int currentQuestionIndex = 0;
-    private int correctAnswers = 0;
+    private TicketPuzzle ticketPuzzle;
     private Label questionLabel;
     private VBox optionsContainer;
     private Label feedbackLabel;
     private Label progressLabel;
     private Button nextButton;
     private VBox quizContent;
-    private List<Question> questions;
-
-    // Quiz questions - funny and frustrating!
-    private static class Question {
-        String question;
-        List<String> options;
-        int correctIndex;
-        String feedback;
-
-        Question(String q, List<String> opts, int correct, String fb) {
-            this.question = q;
-            this.options = new ArrayList<>(opts);
-            this.correctIndex = correct;
-            this.feedback = fb;
-        }
-    }
 
     public TicketMachinePuzzleView(Puzzle puzzle) {
         super(puzzle);
+        if (puzzle instanceof TicketPuzzle) {
+            this.ticketPuzzle = (TicketPuzzle) puzzle;
+        } else {
+            throw new IllegalArgumentException("TicketMachinePuzzleView requires a TicketPuzzle instance");
+        }
         initializeQuiz();
     }
 
     private void initializeQuiz() {
-        // Clear the default content and rebuild
-        getChildren().clear();
-        
         // Load ticket machine background image
         ImageView backgroundImage = new ImageView();
         try {
@@ -82,9 +65,6 @@ public class TicketMachinePuzzleView extends PuzzleView {
             imageContainer.getChildren().add(backgroundImage);
             getChildren().add(imageContainer);
         }
-        
-        // Initialize questions
-        initializeQuestions();
         
         // Main content container - centered
         StackPane centerContainer = new StackPane();
@@ -176,7 +156,7 @@ public class TicketMachinePuzzleView extends PuzzleView {
             "-fx-min-height: 30;"
         );
         closeButton.setOnAction(e -> {
-            OnPuzzleClosed.invoke(this, new OnPuzzleClosedEventArgs());
+            puzzle.OnPuzzleClosed.invoke(puzzle, new Puzzle.OnPuzzleClosedEventArgs());
         });
         
         quizContent.getChildren().addAll(
@@ -204,86 +184,20 @@ public class TicketMachinePuzzleView extends PuzzleView {
         
         getChildren().add(centerContainer);
         
-        // Display first question
-        displayQuestion(0);
+        // Display current question
+        displayCurrentQuestion();
     }
     
-    private void initializeQuestions() {
-        questions = new ArrayList<>();
+    private void displayCurrentQuestion() {
+        TicketPuzzle.Question q = ticketPuzzle.getCurrentQuestion();
         
-        // Question 1: Frustratingly pedantic
-        questions.add(new Question(
-            "What does 2 + 2 euqals to?",
-            List.of(
-                "3.99999",
-                "4.000001",
-                "root 16",
-                "just wing it"
-            ),
-            2, // B is correct (most frustrating answer)
-            "Correct! becuase root 16 is a perfect 4."
-        ));
-        
-        // Question 2: Confusing bureaucracy
-        questions.add(new Question(
-            "How would fix your laptop, as a professional engineer?",
-            List.of(
-                "Check the CPU",
-                "You cant fix it becuase you skipped All Mark lectures",
-                "Turn it off and on",
-                "Beg alison for another laptop."
-            ),
-            2, // C is correct
-            "Correct! Turning it on off always works"
-        ));
-        
-        // Question 3: Trick question
-        questions.add(new Question(
-            "Who was responsible for the bugs in this project?",
-            List.of(
-                "you",
-                "Most definatley you",
-                "All you buddy",
-                "Java"
-            ),
-            3, // C is correct (most annoying)
-            "Correct! Blame the language as always!"
-        ));
-        
-        // Question 4: Absurd requirement
-        questions.add(new Question(
-            "Your teamate comes to you with a bug what do you say?",
-            List.of(
-                "Sure lemme take a look",
-                "UUhh it works on my machine",
-                "You should go to someone smarter than me for this",
-                "..."
-            ),
-            1, // Only black
-            "Correct! Apparently your machine is special"
-        ));
-        
-        // Question 5: Final question
-        questions.add(new Question(
-            "What is the most important tool for programmers?",
-            List.of(
-                "Keyboard",
-                "caffine",
-                "a laptop"
-            ),
-            1, // All of the above
-            "Correct! Welcome to Irish bureaucracy. You've passed the quiz!"
-        ));
-    }
-    
-    private void displayQuestion(int index) {
-        if (index >= questions.size()) {
+        if (q == null) {
+            // Quiz is complete
             completeQuiz();
             return;
         }
         
-        Question q = questions.get(index);
-        currentQuestionIndex = index;
+        int index = ticketPuzzle.getCurrentQuestionIndex();
         
         // Update question text
         questionLabel.setText((index + 1) + ". " + q.question);
@@ -296,7 +210,7 @@ public class TicketMachinePuzzleView extends PuzzleView {
         // Create option buttons (in original order, not shuffled)
         for (int i = 0; i < q.options.size(); i++) {
             final String option = q.options.get(i);
-            final boolean isCorrect = (i == q.correctIndex);
+            final int optionIndex = i;
             
             Button optionButton = new Button(option);
             optionButton.setStyle(
@@ -310,7 +224,7 @@ public class TicketMachinePuzzleView extends PuzzleView {
                 "-fx-alignment: center-left;"
             );
             
-            optionButton.setOnAction(e -> handleAnswer(isCorrect, q.feedback));
+            optionButton.setOnAction(e -> handleAnswer(optionIndex));
             
             // Hover effect
             optionButton.setOnMouseEntered(m -> {
@@ -345,15 +259,22 @@ public class TicketMachinePuzzleView extends PuzzleView {
         updateProgress();
     }
     
-    private void handleAnswer(boolean isCorrect, String feedback) {
+    private void handleAnswer(int selectedIndex) {
+        // Call puzzle method to handle answer
+        InteractionResult result = ticketPuzzle.handleAnswer(selectedIndex);
+        
         // Disable all option buttons
+        TicketPuzzle.Question q = ticketPuzzle.getCurrentQuestion();
+        int correctIndex = q != null ? q.correctIndex : -1;
+        
         for (var child : optionsContainer.getChildren()) {
             if (child instanceof Button) {
                 Button btn = (Button) child;
                 btn.setDisable(true);
                 
                 // Color code the buttons
-                if (btn.getText().equals(questions.get(currentQuestionIndex).options.get(questions.get(currentQuestionIndex).correctIndex))) {
+                int buttonIndex = optionsContainer.getChildren().indexOf(btn);
+                if (buttonIndex == correctIndex) {
                     // Correct answer - green
                     btn.setStyle(
                         "-fx-background-color: #4CAF50; " +
@@ -379,43 +300,51 @@ public class TicketMachinePuzzleView extends PuzzleView {
             }
         }
         
-        // Show feedback
-        if (isCorrect) {
-            correctAnswers++;
-            feedbackLabel.setText("✓ " + feedback);
-            feedbackLabel.setStyle(
-                "-fx-font-size: 12px; " +
-                "-fx-text-fill: #4CAF50; " +
-                "-fx-font-weight: bold;"
-            );
-        } else {
-            feedbackLabel.setText("✗ Wrong! Try again.");
-            feedbackLabel.setStyle(
-                "-fx-font-size: 12px; " +
-                "-fx-text-fill: #f44336; " +
-                "-fx-font-weight: bold;"
-            );
+        // Show feedback based on result
+        String message = result.getMessage();
+        if (message != null) {
+            if (message.startsWith("correct:")) {
+                String feedback = message.substring("correct:".length());
+                feedbackLabel.setText("✓ " + feedback);
+                feedbackLabel.setStyle(
+                    "-fx-font-size: 12px; " +
+                    "-fx-text-fill: #4CAF50; " +
+                    "-fx-font-weight: bold;"
+                );
+            } else if (message.equals("wrong")) {
+                feedbackLabel.setText("✗ Wrong! Try again.");
+                feedbackLabel.setStyle(
+                    "-fx-font-size: 12px; " +
+                    "-fx-text-fill: #f44336; " +
+                    "-fx-font-weight: bold;"
+                );
+            }
         }
         
         feedbackLabel.setVisible(true);
         
         // Show next button
-        if (currentQuestionIndex < questions.size() - 1) {
+        if (ticketPuzzle.getCurrentQuestionIndex() < ticketPuzzle.getTotalQuestions() - 1) {
+            // Not last question - show "Next" button
+            nextButton.setText("Next");
+            nextButton.setOnAction(e -> nextQuestion());
             nextButton.setVisible(true);
         } else {
-            // Last question - change button text
+            // Last question - change button text and action to complete quiz
             nextButton.setText("Complete Quiz");
+            nextButton.setOnAction(e -> completeQuiz());
             nextButton.setVisible(true);
         }
     }
     
     private void nextQuestion() {
-        displayQuestion(currentQuestionIndex + 1);
+        ticketPuzzle.nextQuestion();
+        displayCurrentQuestion();
     }
     
     private void updateProgress() {
-        progressLabel.setText((currentQuestionIndex + 1) + "/" + questions.size() + 
-                            " | ✓ " + correctAnswers);
+        progressLabel.setText((ticketPuzzle.getCurrentQuestionIndex() + 1) + "/" + ticketPuzzle.getTotalQuestions() + 
+                            " | ✓ " + ticketPuzzle.getCorrectAnswers());
     }
     
     private void completeQuiz() {
@@ -432,8 +361,8 @@ public class TicketMachinePuzzleView extends PuzzleView {
         
         // Show results
         String resultText;
-        if (correctAnswers == questions.size()) {
-            resultText = "Perfect! All " + questions.size() + " correct!\nTicket dispensed...";
+        if (ticketPuzzle.isAllCorrect()) {
+            resultText = "Perfect! All " + ticketPuzzle.getTotalQuestions() + " correct!\nTicket dispensed...";
             feedbackLabel.setText(resultText);
             feedbackLabel.setStyle(
                 "-fx-font-size: 12px; " +
@@ -443,7 +372,7 @@ public class TicketMachinePuzzleView extends PuzzleView {
             feedbackLabel.setVisible(true);
             
             // Solve the puzzle
-            InteractionResult result = puzzle.interact("complete", null);
+            InteractionResult result = ticketPuzzle.interact("complete", null);
             if (result.getType() == InteractionResult.ResultType.PUZZLE_SOLVED) {
                 // Show ticket item overlay
                 showTicketItemOverlay();
@@ -451,13 +380,13 @@ public class TicketMachinePuzzleView extends PuzzleView {
                 // Auto-close after a delay (increased to allow overlay to be seen)
                 javafx.animation.Timeline timeline = new javafx.animation.Timeline(
                     new javafx.animation.KeyFrame(javafx.util.Duration.seconds(3), e -> {
-                        OnPuzzleSolved.invoke(this, new OnPuzzleSolvedEventArgs(puzzle.getId(), result));
+                        puzzle.OnPuzzleSolved.invoke(puzzle, new Puzzle.OnPuzzleSolvedEventArgs(puzzle.getId(), result));
                     })
                 );
                 timeline.play();
             }
         } else {
-            resultText = correctAnswers + "/" + questions.size() + " correct.\nAll correct required. Try again.";
+            resultText = ticketPuzzle.getCorrectAnswers() + "/" + ticketPuzzle.getTotalQuestions() + " correct.\nAll correct required. Try again.";
             feedbackLabel.setText(resultText);
             feedbackLabel.setStyle(
                 "-fx-font-size: 12px; " +
@@ -477,9 +406,8 @@ public class TicketMachinePuzzleView extends PuzzleView {
                 "-fx-background-radius: 5;"
             );
             retryButton.setOnAction(e -> {
-                currentQuestionIndex = 0;
-                correctAnswers = 0;
-                displayQuestion(0);
+                ticketPuzzle.resetQuiz();
+                displayCurrentQuestion();
             });
             optionsContainer.getChildren().add(retryButton);
         }
@@ -489,9 +417,9 @@ public class TicketMachinePuzzleView extends PuzzleView {
      * Shows an overlay displaying the ticket item that was obtained.
      */
     private void showTicketItemOverlay() {
-        // Create overlay background (semi-transparent dark)
+        // Create overlay background (fully transparent to show ticket machine behind)
         Rectangle overlayBackground = new Rectangle();
-        overlayBackground.setFill(Color.rgb(0, 0, 0, 0.8));
+        overlayBackground.setFill(Color.TRANSPARENT);
         overlayBackground.widthProperty().bind(widthProperty());
         overlayBackground.heightProperty().bind(heightProperty());
         

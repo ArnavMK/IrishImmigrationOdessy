@@ -12,6 +12,7 @@ public class Room {
     private Map<Direction, Room> exits; // Map direction to neighboring Room
     private Map<String, Interactable> interactables; // Map interactable ID to Interactable
     private Map<String, Puzzle> puzzles; // Map puzzle ID to Puzzle
+    private Inventory inventory; // Room's inventory
 
     public Room(String name, String description) {
         this.name = name;
@@ -19,6 +20,7 @@ public class Room {
         exits = new HashMap<>();
         interactables = new HashMap<>();
         puzzles = new HashMap<>();
+        inventory = new Inventory();
     }
 
     public String getDescription() {
@@ -83,6 +85,7 @@ public class Room {
      * Handle interaction with an interactable in this room.
      */
     public InteractionResult interact(String interactableId, String action) {
+
         Interactable interactable = interactables.get(interactableId);
         if (interactable == null) {
             return InteractionResult.message("You can't interact with that.");
@@ -97,12 +100,18 @@ public class Room {
                 // Find the ticket puzzle and trigger it
                 Puzzle ticketPuzzle = puzzles.get("ticketPuzzle");
                 if (ticketPuzzle != null) {
-                    // Return PUZZLE_TRIGGERED to show the puzzle view
+                    // Note: canStart() check moved to GameController.showPuzzleView()
+                    // to avoid needing Player reference here
                     return InteractionResult.puzzleTriggered("ticketPuzzle");
                 }
                 break;
         }
 
         return InteractionResult.message("Nothing happens.");
+    }
+    
+    // Inventory management
+    public Inventory getInventory() {
+        return inventory;
     }
 }

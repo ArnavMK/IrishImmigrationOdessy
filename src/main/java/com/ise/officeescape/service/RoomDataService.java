@@ -2,6 +2,7 @@ package com.ise.officeescape.service;
 
 import com.ise.officeescape.model.*;
 import com.ise.officeescape.model.puzzles.TicketPuzzle;
+import com.ise.officeescape.model.puzzles.QueueGaurdPuzzle;
 import com.ise.officeescape.view.HotspotViewModel;
 import com.ise.officeescape.view.RoomViewModel;
 
@@ -22,8 +23,12 @@ public class RoomDataService {
         // Configure room-specific data
         switch (roomId) {
             case "ticket":
-            System.out.println("[RoomDataService] Setting up ticket room with puzzles and interactables");
-            setupTicketRoom(room, viewModel);
+                System.out.println("[RoomDataService] Setting up ticket room with puzzles and interactables");
+                setupTicketRoom(room, viewModel);
+            break;
+            case "queue":
+                System.out.println("[RoomDataService] Setting up queue room with interactables");
+                setupQueueRoom(room, viewModel);
             break;
             default:
             System.out.println("[RoomDataService] No special setup for room: " + roomId);
@@ -63,6 +68,27 @@ public class RoomDataService {
             150, 200,  // width, height
             "Ticket Machine - Click to get your number",
             "TAKE_TICKET"
+        );
+    }
+
+    /**
+     * Sets up the queue room with hotspots.
+     */
+    private void setupQueueRoom(Room room, RoomViewModel viewModel) {
+        System.out.println("[RoomDataService] Setting up queue room with hotspots and puzzles");
+
+        // Add puzzle first (needed for interactions)
+        Puzzle guardPuzzle = new QueueGaurdPuzzle();
+        room.addPuzzle(guardPuzzle);
+        System.out.println("[RoomDataService] Added puzzle: queueGaurdPuzzle");
+
+        // Add guard NPC hotspot
+        addInteractables(room, viewModel,
+            "guard",
+            400, 300,  // x, y position on screen
+            100, 150,  // width, height
+            "Guard - Talk to the guard",
+            "TALK_TO_GUARD"
         );
     }
 

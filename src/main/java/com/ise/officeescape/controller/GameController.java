@@ -115,6 +115,16 @@ public class GameController {
             case PUZZLE_SOLVED:
                 view.hidePuzzleView();
                 view.applyViewUpdates(result.getViewUpdates());
+                
+                // Handle guard puzzle - remove popsicle when bribed
+                if (result.getPuzzleId() != null && result.getPuzzleId().equals("queueGaurdPuzzle")) {
+                    if (player.getInventory().hasItem("popsicle")) {
+                        player.getInventory().removeItem("popsicle");
+                        System.out.println("You gave the popsicle to the guard.");
+                        view.updateInventory(player.getInventory(), getCurrentRoom().getInventory());
+                    }
+                }
+                
                 if (result.getItem() != null) {
                     player.getInventory().addItem(result.getItem());
                     System.out.println("Item obtained: " + result.getItem().getName());
@@ -254,6 +264,8 @@ public class GameController {
         PuzzleView puzzleView;
         if (puzzleId.equals("ticketPuzzle")) {
             puzzleView = new com.ise.officeescape.view.puzzles.TicketMachinePuzzleView(puzzle);
+        } else if (puzzleId.equals("queueGaurdPuzzle")) {
+            puzzleView = new com.ise.officeescape.view.puzzles.GuardPuzzleView(puzzle);
         } else {
             // No view implementation for this puzzle type
             System.err.println("No puzzle view implementation for puzzle: " + puzzleId);

@@ -105,6 +105,15 @@ public class Room {
                     return InteractionResult.puzzleTriggered("ticketPuzzle");
                 }
                 break;
+            case "TALK_TO_GUARD":
+                // Find the guard puzzle and trigger it
+                Puzzle queueGaurdPuzzle = puzzles.get("queueGaurdPuzzle");
+                if (queueGaurdPuzzle != null) {
+                    // Note: canStart() check moved to GameController.showPuzzleView()
+                    // to avoid needing Player reference here
+                    return InteractionResult.puzzleTriggered("queueGaurdPuzzle");
+                }
+                break;
         }
 
         return InteractionResult.message("Nothing happens.");

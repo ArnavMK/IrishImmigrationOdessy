@@ -4,11 +4,16 @@ import com.ise.officeescape.eventSystem.*;
 import com.ise.officeescape.model.Room;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.animation.FadeTransition;
+import javafx.util.Duration;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +30,7 @@ public class GameView extends StackPane {
     private PuzzleView currentPuzzleView; // Current puzzle overlay (if any)
     private InventoryView inventoryView; // Inventory overlay
     private Button inventoryButton; // Button to open inventory
+    private Label saveIndicatorLabel; // Label to show "Game saved" message
 
     // Event for hotspot clicks
     public Event<OnHotspotClickedEventArgs> OnHotspotClicked = new Event<>();
@@ -91,12 +97,40 @@ public class GameView extends StackPane {
         StackPane.setMargin(inventoryButton, new Insets(0, 20, 20, 0));
         getChildren().add(inventoryButton);
 
+        // Create save indicator label (top right, aligned with inventory button)
+        saveIndicatorLabel = new Label("Game saved");
+        saveIndicatorLabel.setStyle(
+            "-fx-background-color: rgba(76, 175, 80, 0.9); " +
+            "-fx-text-fill: white; " +
+            "-fx-font-size: 14px; " +
+            "-fx-padding: 8 12; " +
+            "-fx-background-radius: 5;"
+        );
+        saveIndicatorLabel.setVisible(false);
+        StackPane.setAlignment(saveIndicatorLabel, javafx.geometry.Pos.TOP_RIGHT);
+        StackPane.setMargin(saveIndicatorLabel, new Insets(20, 20, 0, 0));
+        getChildren().add(saveIndicatorLabel);
+
         // Create inventory view (initially hidden)
         inventoryView = new InventoryView();
         getChildren().add(inventoryView);
 
         // Add hotspots layer LAST so it's on top and receives clicks
         getChildren().add(hotspotsLayer);
+        
+        // Set up keyboard event handling
+        setFocusTraversable(true);
+        setOnKeyPressed(this::handleKeyPress);
+    }
+    
+    /**
+     * Handles keyboard input.
+     */
+    private void handleKeyPress(KeyEvent event) {
+        if (event.getCode() == KeyCode.I) {
+            toggleInventory();
+            event.consume();
+        }
     }
 
     public DirectionControllerView getDirectionControllerView() {
@@ -304,6 +338,36 @@ public class GameView extends StackPane {
     public void toggleInventory() {
         inventoryView.toggle();
     }
+    
+    /**
+     * Shows a "Game saved" indicator in the top right corner.
+     * The indicator fades in, stays visible for 2 seconds, then fades out.
+     */
+    public void showSaveIndicator() {
+        // Reset opacity and make visible
+        saveIndicatorLabel.setOpacity(1.0);
+        saveIndicatorLabel.setVisible(true);
+        
+        // Fade in
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(300), saveIndicatorLabel);
+        fadeIn.setFromValue(0.0);
+        fadeIn.setToValue(1.0);
+        
+        // Fade out after 2 seconds
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(300), saveIndicatorLabel);
+        fadeOut.setFromValue(1.0);
+        fadeOut.setToValue(0.0);
+        fadeOut.setOnFinished(e -> saveIndicatorLabel.setVisible(false));
+        
+        // Chain animations
+        fadeIn.setOnFinished(e -> {
+            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(Duration.seconds(2));
+            pause.setOnFinished(e2 -> fadeOut.play());
+            pause.play();
+        });
+        
+        fadeIn.play();
+    }
 
     /**
      * Updates the inventory view with current player and room inventories.
@@ -317,8 +381,9 @@ public class GameView extends StackPane {
     /**
      * Sets the callback for when inventory items are moved.
      * This allows the controller to refresh the inventory display.
+     * @param callback A function that receives (item, fromRoomInventory)
      */
-    public void setInventoryChangeCallback(Runnable callback) {
+    public void setInventoryChangeCallback(java.util.function.BiConsumer<com.ise.officeescape.model.Item, Boolean> callback) {
         inventoryView.setOnInventoryChanged(callback);
     }
 
@@ -327,6 +392,79 @@ public class GameView extends StackPane {
      */
     public InventoryView getInventoryView() {
         return inventoryView;
+    }
+    
+    /**
+     * Shows a message overlay with the given text.
+     * Similar to puzzle success overlays.
+     */
+    public void showMessageOverlay(String message) {
+        // Create overlay background
+        javafx.scene.shape.Rectangle overlayBackground = new javafx.scene.shape.Rectangle();
+        overlayBackground.setFill(javafx.scene.paint.Color.rgb(0, 0, 0, 0.7));
+        overlayBackground.widthProperty().bind(widthProperty());
+        overlayBackground.heightProperty().bind(heightProperty());
+        
+        // Create container for the message
+        javafx.scene.layout.VBox messageContainer = new javafx.scene.layout.VBox(20);
+        messageContainer.setAlignment(javafx.geometry.Pos.CENTER);
+        messageContainer.setPadding(new Insets(30));
+        messageContainer.setMaxWidth(500);
+        messageContainer.setStyle(
+            "-fx-background-color: rgba(43, 43, 43, 0.95); " +
+            "-fx-background-radius: 15; " +
+            "-fx-border-color: #ff9800; " +
+            "-fx-border-width: 3; " +
+            "-fx-border-radius: 15;"
+        );
+        
+        // Message label
+        javafx.scene.control.Label messageLabel = new javafx.scene.control.Label(message);
+        messageLabel.setStyle(
+            "-fx-font-size: 20px; " +
+            "-fx-text-fill: #ffffff; " +
+            "-fx-font-weight: bold; " +
+            "-fx-text-alignment: center;"
+        );
+        messageLabel.setAlignment(javafx.geometry.Pos.CENTER);
+        messageLabel.setWrapText(true);
+        
+        // Close button
+        javafx.scene.control.Button closeButton = new javafx.scene.control.Button("OK");
+        closeButton.setStyle(
+            "-fx-background-color: #ff9800; " +
+            "-fx-text-fill: white; " +
+            "-fx-font-size: 16px; " +
+            "-fx-padding: 10 20; " +
+            "-fx-background-radius: 5; " +
+            "-fx-cursor: hand;"
+        );
+        
+        messageContainer.getChildren().addAll(messageLabel, closeButton);
+        
+        // Create StackPane to center the message container
+        StackPane overlayPane = new StackPane();
+        overlayPane.setAlignment(javafx.geometry.Pos.CENTER);
+        overlayPane.prefWidthProperty().bind(widthProperty());
+        overlayPane.prefHeightProperty().bind(heightProperty());
+        overlayPane.getChildren().addAll(overlayBackground, messageContainer);
+        
+        // Close button action
+        closeButton.setOnAction(e -> {
+            getChildren().remove(overlayPane);
+        });
+        
+        // Add overlay to the view (on top of everything)
+        getChildren().add(overlayPane);
+        
+        // Animate the overlay appearance (fade in)
+        overlayPane.setOpacity(0);
+        javafx.animation.FadeTransition fadeIn = new javafx.animation.FadeTransition(
+            javafx.util.Duration.millis(300), overlayPane
+        );
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+        fadeIn.play();
     }
 }
 

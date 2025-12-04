@@ -114,6 +114,20 @@ public class Room {
                     return InteractionResult.puzzleTriggered("queueGaurdPuzzle");
                 }
                 break;
+            case "SECURITY_CHECK":
+                // Find the security puzzle and trigger it
+                Puzzle securityPuzzle = puzzles.get("securityPuzzle");
+                if (securityPuzzle != null) {
+                    return InteractionResult.puzzleTriggered("securityPuzzle");
+                }
+                break;
+            case "START_INTERVIEW":
+                // Find the interview puzzle and trigger it
+                Puzzle interviewPuzzle = puzzles.get("interviewPuzzle");
+                if (interviewPuzzle != null) {
+                    return InteractionResult.puzzleTriggered("interviewPuzzle");
+                }
+                break;
         }
 
         return InteractionResult.message("Nothing happens.");
@@ -122,5 +136,123 @@ public class Room {
     // Inventory management
     public Inventory getInventory() {
         return inventory;
+    }
+    
+    /**
+     * Checks if a player can enter this room.
+     * Override this method or add conditions based on room name to implement entry restrictions.
+     * 
+     * @param player The player attempting to enter
+     * @param roomManager The room manager to access other rooms (for checking puzzle states)
+     * @return true if the player can enter, false otherwise
+     */
+    public boolean canEnter(Player player, RoomManager roomManager) {
+        // Default: all rooms are accessible
+        // Add room-specific conditions here
+        if (name.equals("queue")) {
+            // Queue room requires a ticket
+            return player.getInventory().hasItem("ticketItem");
+        }
+        if (name.equals("security")) {
+            // Security room requires the guard puzzle to be solved
+            Room queueRoom = roomManager.getAllRooms().stream()
+                .filter(r -> r.getName().equals("queue"))
+                .findFirst()
+                .orElse(null);
+            if (queueRoom != null) {
+                Puzzle guardPuzzle = queueRoom.getPuzzle("queueGaurdPuzzle");
+                if (guardPuzzle != null) {
+                    return guardPuzzle.isSolved();
+                }
+            }
+            return false;
+        }
+        if (name.equals("interview")) {
+            // Interview room requires both the guard puzzle and security puzzle to be solved
+            // Check guard puzzle in queue room
+            Room queueRoom = roomManager.getAllRooms().stream()
+                .filter(r -> r.getName().equals("queue"))
+                .findFirst()
+                .orElse(null);
+            boolean guardSolved = false;
+            if (queueRoom != null) {
+                Puzzle guardPuzzle = queueRoom.getPuzzle("queueGaurdPuzzle");
+                if (guardPuzzle != null) {
+                    guardSolved = guardPuzzle.isSolved();
+                }
+            }
+            
+            // Check security puzzle in security room
+            Room securityRoom = roomManager.getAllRooms().stream()
+                .filter(r -> r.getName().equals("security"))
+                .findFirst()
+                .orElse(null);
+            boolean securitySolved = false;
+            if (securityRoom != null) {
+                Puzzle securityPuzzle = securityRoom.getPuzzle("securityPuzzle");
+                if (securityPuzzle != null) {
+                    securitySolved = securityPuzzle.isSolved();
+                }
+            }
+            
+            // Both puzzles must be solved
+            return guardSolved && securitySolved;
+        }
+        return true;
+    }
+    
+    /**
+     * Gets the message to display when a player cannot enter this room.
+     * 
+     * @param player The player attempting to enter
+     * @param roomManager The room manager to access other rooms
+     * @return A message explaining why entry is blocked, or null if entry is allowed
+     */
+    public String getEntryBlockedMessage(Player player, RoomManager roomManager) {
+        if (!canEnter(player, roomManager)) {
+            if (name.equals("queue")) {
+                return "You need a ticket to enter the queue room.";
+            }
+            if (name.equals("security")) {
+                return "You need to bribe the guard to skip the line first.";
+            }
+            if (name.equals("interview")) {
+                // Check which puzzle is missing
+                Room queueRoom = roomManager.getAllRooms().stream()
+                    .filter(r -> r.getName().equals("queue"))
+                    .findFirst()
+                    .orElse(null);
+                boolean guardSolved = false;
+                if (queueRoom != null) {
+                    Puzzle guardPuzzle = queueRoom.getPuzzle("queueGaurdPuzzle");
+                    if (guardPuzzle != null) {
+                        guardSolved = guardPuzzle.isSolved();
+                    }
+                }
+                
+                Room securityRoom = roomManager.getAllRooms().stream()
+                    .filter(r -> r.getName().equals("security"))
+                    .findFirst()
+                    .orElse(null);
+                boolean securitySolved = false;
+                if (securityRoom != null) {
+                    Puzzle securityPuzzle = securityRoom.getPuzzle("securityPuzzle");
+                    if (securityPuzzle != null) {
+                        securitySolved = securityPuzzle.isSolved();
+                    }
+                }
+                
+                if (!guardSolved && !securitySolved) {
+                    return "You need to bribe the guard and pass through security first.";
+                } else if (!guardSolved) {
+                    return "You need to bribe the guard to skip the line first.";
+                } else if (!securitySolved) {
+                    return "You need to pass through security first.";
+                }
+                return "You cannot enter this room.";
+            }
+            return "You cannot enter this room.";
+        }
+        return null;
     }
 }

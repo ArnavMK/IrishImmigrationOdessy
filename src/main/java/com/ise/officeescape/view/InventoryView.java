@@ -30,7 +30,8 @@ public class InventoryView extends StackPane {
     private Inventory roomInventory;
     
     // Callback for when items are moved (to update the view)
-    private Runnable onInventoryChanged;
+    // Passes: item moved, fromRoomInventory (true if from room, false if from player)
+    private java.util.function.BiConsumer<Item, Boolean> onInventoryChanged;
     
     public InventoryView() {
         initializeUI();
@@ -38,9 +39,17 @@ public class InventoryView extends StackPane {
     
     /**
      * Sets the callback to be called when inventory changes.
+     * @param callback A function that receives (item, fromRoomInventory) where fromRoomInventory is true if item came from room inventory
+     */
+    public void setOnInventoryChanged(java.util.function.BiConsumer<Item, Boolean> callback) {
+        this.onInventoryChanged = callback;
+    }
+    
+    /**
+     * Legacy method for Runnable callback (for backwards compatibility).
      */
     public void setOnInventoryChanged(Runnable callback) {
-        this.onInventoryChanged = callback;
+        this.onInventoryChanged = (item, fromRoom) -> callback.run();
     }
     
     private void initializeUI() {
@@ -279,7 +288,7 @@ public class InventoryView extends StackPane {
         
         // Notify callback if set
         if (onInventoryChanged != null) {
-            onInventoryChanged.run();
+            onInventoryChanged.accept(item, fromRoomInventory);
         }
     }
     

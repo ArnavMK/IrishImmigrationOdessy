@@ -3,6 +3,8 @@ package com.ise.officeescape.service;
 import com.ise.officeescape.model.*;
 import com.ise.officeescape.model.puzzles.TicketPuzzle;
 import com.ise.officeescape.model.puzzles.QueueGaurdPuzzle;
+import com.ise.officeescape.model.puzzles.SecurityPuzzle;
+import com.ise.officeescape.model.puzzles.InterviewPuzzle;
 import com.ise.officeescape.view.HotspotViewModel;
 import com.ise.officeescape.view.RoomViewModel;
 
@@ -29,6 +31,14 @@ public class RoomDataService {
             case "queue":
                 System.out.println("[RoomDataService] Setting up queue room with interactables");
                 setupQueueRoom(room, viewModel);
+            break;
+            case "security":
+                System.out.println("[RoomDataService] Setting up security room with puzzles and interactables");
+                setupSecurityRoom(room, viewModel);
+            break;
+            case "interview":
+                System.out.println("[RoomDataService] Setting up interview room with puzzles and interactables");
+                setupInterviewRoom(room, viewModel);
             break;
             default:
             System.out.println("[RoomDataService] No special setup for room: " + roomId);
@@ -89,6 +99,48 @@ public class RoomDataService {
             100, 150,  // width, height
             "Guard - Talk to the guard",
             "TALK_TO_GUARD"
+        );
+    }
+    
+    /**
+     * Sets up the security room with puzzles and hotspots.
+     */
+    private void setupSecurityRoom(Room room, RoomViewModel viewModel) {
+        System.out.println("[RoomDataService] Setting up security room with hotspots and puzzles");
+
+        // Add puzzle first (needed for interactions)
+        Puzzle securityPuzzle = new SecurityPuzzle();
+        room.addPuzzle(securityPuzzle);
+        System.out.println("[RoomDataService] Added puzzle: securityPuzzle");
+
+        // Add security checkpoint hotspot (in the middle)
+        addInteractables(room, viewModel,
+            "securityCheckpoint",
+            600, 400,  // x, y position on screen
+            150, 200,  // width, height
+            "Security Checkpoint - Click to hack the metal detector",
+            "SECURITY_CHECK"
+        );
+    }
+    
+    /**
+     * Sets up the interview room with puzzles and hotspots.
+     */
+    private void setupInterviewRoom(Room room, RoomViewModel viewModel) {
+        System.out.println("[RoomDataService] Setting up interview room with hotspots and puzzles");
+
+        // Add puzzle first (needed for interactions)
+        Puzzle interviewPuzzle = new InterviewPuzzle();
+        room.addPuzzle(interviewPuzzle);
+        System.out.println("[RoomDataService] Added puzzle: interviewPuzzle");
+
+        // Add interviewer hotspot (in the middle)
+        addInteractables(room, viewModel,
+            "interviewer",
+            600, 400,  // x, y position on screen
+            150, 200,  // width, height
+            "Interviewer - Click to start the interview",
+            "START_INTERVIEW"
         );
     }
 

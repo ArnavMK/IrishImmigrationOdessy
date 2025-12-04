@@ -14,9 +14,13 @@ public class App extends Application {
         GameView view = new GameView();
         GameController controller = new GameController(view);
 
-        stage.setScene(new Scene(view, 1366, 768));
+        Scene scene = new Scene(view, 1366, 768);
+        stage.setScene(scene);
         stage.setTitle("Irish Immigration Adventure");
         stage.show();
+        
+        // Request focus so keyboard events work
+        view.requestFocus();
     }
 
     public static void main(String[] args) {

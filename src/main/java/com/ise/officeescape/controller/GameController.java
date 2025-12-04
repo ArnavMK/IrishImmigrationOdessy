@@ -3,11 +3,13 @@ package com.ise.officeescape.controller;
 import com.ise.officeescape.eventSystem.*;
 import com.ise.officeescape.model.Direction;
 import com.ise.officeescape.model.InteractionResult;
+import com.ise.officeescape.model.Item;
 import com.ise.officeescape.model.Player;
 import com.ise.officeescape.model.Puzzle;
 import com.ise.officeescape.model.Room;
 import com.ise.officeescape.model.RoomManager;
 import com.ise.officeescape.service.RoomDataService;
+import com.ise.officeescape.service.SaveService;
 import com.ise.officeescape.view.DirectionControllerView.OnDirectionButtonPressedArgs;
 import com.ise.officeescape.view.GameView;
 import com.ise.officeescape.view.GameView.OnHotspotClickedEventArgs;
@@ -22,6 +24,7 @@ public class GameController {
     private final Player player;
     private final RoomManager roomManager;
     private final RoomDataService roomDataService;
+    private final SaveService saveService;
 
     public Event<OnRoomChangedEventArgs> onRoomChanged;
     public class OnRoomChangedEventArgs extends EventArgs {
@@ -35,14 +38,57 @@ public class GameController {
         this.view = view;
         this.roomManager = new RoomManager();
         this.roomDataService = new RoomDataService();
-        this.player = new Player("Player", roomManager.getStartRoom());
+        this.saveService = new SaveService();
         GameController.instance = this;
+
+        // Try to load saved game
+        SaveService.SaveData saveData = saveService.loadGame(roomManager);
+        Room startRoom;
+        
+        if (saveData != null) {
+            // Load from save
+            startRoom = saveData.room;
+            this.player = new Player("Player", startRoom);
+            
+            // Restore inventory
+            for (String itemName : saveData.itemNames) {
+                Item item = SaveService.createItemFromName(itemName);
+                player.getInventory().addItem(item);
+            }
+            System.out.println("[GameController] Loaded saved game - Room: " + startRoom.getName() + ", Items: " + saveData.itemNames.size());
+        } else {
+            // Start new game
+            startRoom = roomManager.getStartRoom();
+            this.player = new Player("Player", startRoom);
+            
+            // TEMPORARY: Add all required documents to player inventory for testing
+            player.getInventory().addItem(new Item("passport", "Your passport"));
+            player.getInventory().addItem(new Item("visaApplication", "Visa application form"));
+            player.getInventory().addItem(new Item("stolenDocument", "Stolen document"));
+            player.getInventory().addItem(new Item("birthCertificate", "Birth certificate"));
+            player.getInventory().addItem(new Item("employmentLetter", "Employment letter"));
+            System.out.println("[GameController] Starting new game - Added test documents to player inventory");
+        }
 
         initializeView();
         setupEventSubscriptions();
         
         // Set up inventory change callback to refresh inventory view when items are moved
-        view.setInventoryChangeCallback(() -> {
+        view.setInventoryChangeCallback((item, fromRoomInventory) -> {
+            // Check for banana peel slip mechanic in queue room
+            Room currentRoom = getCurrentRoom();
+            if (currentRoom != null && currentRoom.getName().equals("queue")) {
+                // Check if banana peel was moved from player to room inventory
+                if (item.getName().equals("bananaPeel") && !fromRoomInventory) {
+                    // Check if player doesn't already have the stolen document
+                    if (!player.getInventory().hasItem("stolenDocument")) {
+                        // Someone slips and drops a document!
+                        handleBananaPeelSlip();
+                    }
+                }
+            }
+            
+            // Refresh inventory view
             view.updateInventory(player.getInventory(), getCurrentRoom().getInventory());
         });
     }
@@ -185,9 +231,34 @@ public class GameController {
      */
     public String movePlayer(Direction direction) {
         System.out.println("[GameController] movePlayer() called, direction: " + direction);
+        
+        // Get the destination room before moving
+        Room currentRoom = getCurrentRoom();
+        Room destinationRoom = currentRoom.getExit(direction);
+        
+        if (destinationRoom == null) {
+            System.out.println("[GameController] Player cannot move " + direction + " - no exit");
+            return "You cannot go " + direction + " from here.";
+        }
+        
+        // Check if player can enter the destination room
+        if (!destinationRoom.canEnter(player, roomManager)) {
+            String blockedMessage = destinationRoom.getEntryBlockedMessage(player, roomManager);
+            System.out.println("[GameController] Player cannot enter " + destinationRoom.getName() + ": " + blockedMessage);
+            return blockedMessage != null ? blockedMessage : "You cannot enter this room.";
+        }
+        
+        // Move the player
         if (player.move(direction)) {
             System.out.println("[GameController] Player moved successfully to: " + getCurrentRoom().getName());
             loadAndShowRoom(getCurrentRoom());
+            
+            // Auto-save after entering new room
+            if (saveService.saveGame(getCurrentRoom(), player.getInventory())) {
+                // Show save indicator
+                view.showSaveIndicator();
+            }
+            
             if (onRoomChanged != null) {
                 onRoomChanged.invoke(this, new OnRoomChangedEventArgs(getCurrentRoom()));
             }
@@ -266,6 +337,14 @@ public class GameController {
             puzzleView = new com.ise.officeescape.view.puzzles.TicketMachinePuzzleView(puzzle);
         } else if (puzzleId.equals("queueGaurdPuzzle")) {
             puzzleView = new com.ise.officeescape.view.puzzles.GuardPuzzleView(puzzle);
+        } else if (puzzleId.equals("securityPuzzle")) {
+            puzzleView = new com.ise.officeescape.view.puzzles.SecurityPuzzleView(puzzle);
+        } else if (puzzleId.equals("interviewPuzzle")) {
+            // Set player reference for document checks
+            if (puzzle instanceof com.ise.officeescape.model.puzzles.InterviewPuzzle) {
+                ((com.ise.officeescape.model.puzzles.InterviewPuzzle) puzzle).setPlayer(player);
+            }
+            puzzleView = new com.ise.officeescape.view.puzzles.InterviewPuzzleView(puzzle);
         } else {
             // No view implementation for this puzzle type
             System.err.println("No puzzle view implementation for puzzle: " + puzzleId);
@@ -283,6 +362,26 @@ public class GameController {
         });
         
         view.showPuzzleView(puzzleView);
+    }
+    
+    /**
+     * Handles the banana peel slip event - someone slips and drops a document.
+     */
+    private void handleBananaPeelSlip() {
+        // Create the stolen document item
+        Item document = new Item("stolenDocument", "A stolen document - someone dropped it after slipping on the banana peel");
+        
+        // Add to player inventory
+        player.getInventory().addItem(document);
+        
+        // Show overlay message
+        view.showMessageOverlay(
+            "Someone slipped on the banana peel!\n" +
+            "They dropped a document.\n" +
+            "You pick it up."
+        );
+        
+        System.out.println("Someone slipped on the banana peel and dropped a document!");
     }
 }
 

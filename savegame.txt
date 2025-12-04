@@ -1,0 +1,8 @@
+outside
+passport
+birthCertificate
+employmentLetter
+stolenDocument
+bananaPeel
+visaApplication
+popsicle

@@ -61,13 +61,10 @@ public class GameController {
             startRoom = roomManager.getStartRoom();
             this.player = new Player("Player", startRoom);
             
-            // TEMPORARY: Add all required documents to player inventory for testing
             player.getInventory().addItem(new Item("passport", "Your passport"));
             player.getInventory().addItem(new Item("visaApplication", "Visa application form"));
-            player.getInventory().addItem(new Item("stolenDocument", "Stolen document"));
             player.getInventory().addItem(new Item("birthCertificate", "Birth certificate"));
             player.getInventory().addItem(new Item("employmentLetter", "Employment letter"));
-            System.out.println("[GameController] Starting new game - Added test documents to player inventory");
         }
 
         initializeView();
@@ -193,17 +190,6 @@ public class GameController {
                     view.updateInventory(player.getInventory(), getCurrentRoom().getInventory());
                 } else if (result.getItemId() != null) {
                     System.out.println("Item obtained: " + result.getItemId() + " (item object not provided)");
-                }
-                break;
-                
-            case DOOR_UNLOCKED:
-                System.out.println("Door unlocked to: " + result.getNextRoomId());
-                // Could automatically move player
-                break;
-                
-            case DIALOGUE:
-                for (String line : result.getDialogueLines()) {
-                    System.out.println(line);
                 }
                 break;
                 

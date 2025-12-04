@@ -13,8 +13,6 @@ public class InteractionResult {
         PUZZLE_TRIGGERED,
         PUZZLE_SOLVED,
         ITEM_OBTAINED,
-        DOOR_UNLOCKED,
-        DIALOGUE,
         NONE
     }
 
@@ -61,12 +59,6 @@ public class InteractionResult {
         InteractionResult result = new InteractionResult(ResultType.ITEM_OBTAINED);
         result.item = item;
         result.itemId = item != null ? item.getName() : null;
-        return result;
-    }
-
-    public static InteractionResult doorUnlocked(String nextRoomId) {
-        InteractionResult result = new InteractionResult(ResultType.DOOR_UNLOCKED);
-        result.nextRoomId = nextRoomId;
         return result;
     }
 

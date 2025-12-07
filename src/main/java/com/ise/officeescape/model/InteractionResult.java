@@ -23,11 +23,9 @@ public class InteractionResult {
     private Item item; // The actual item object (when ITEM_OBTAINED)
     private String nextRoomId;
     private List<String> dialogueLines;
-    private List<String> viewUpdates; // e.g., "playAnimation:scannerLightsOff", "enableHotspot:door"
 
     public InteractionResult(ResultType type) {
         this.type = type;
-        this.viewUpdates = new ArrayList<>();
         this.dialogueLines = new ArrayList<>();
     }
 
@@ -93,15 +91,6 @@ public class InteractionResult {
 
     public List<String> getDialogueLines() {
         return dialogueLines;
-    }
-
-    public List<String> getViewUpdates() {
-        return viewUpdates;
-    }
-
-    public InteractionResult addViewUpdate(String update) {
-        this.viewUpdates.add(update);
-        return this;
     }
 
     public InteractionResult addDialogue(String line) {

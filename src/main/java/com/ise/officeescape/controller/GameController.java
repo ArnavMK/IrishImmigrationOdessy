@@ -72,15 +72,16 @@ public class GameController {
         
         // Set up inventory change callback to refresh inventory view when items are moved
         view.setInventoryChangeCallback((item, fromRoomInventory) -> {
-            // Check for banana peel slip mechanic in queue room
+        
+            //Is in queue room and there is a bananaPeel in the inventory, show stolenDocument overlay.
             Room currentRoom = getCurrentRoom();
             if (currentRoom != null && currentRoom.getName().equals("queue")) {
-                // Check if banana peel was moved from player to room inventory
                 if (item.getName().equals("bananaPeel") && !fromRoomInventory) {
-                    // Check if player doesn't already have the stolen document
-                    if (!player.getInventory().hasItem("stolenDocument")) {
-                        // Someone slips and drops a document!
-                        handleBananaPeelSlip();
+                    if (currentRoom.getInventory().hasItem("bananaPeel")) {
+                        if (!player.getInventory().hasItem("stolenDocument")) {
+                            System.out.println("[GameController] Banana peel detected in queue room - triggering slip mechanic");
+                            handleBananaPeelSlip();
+                        }
                     }
                 }
             }
@@ -157,7 +158,6 @@ public class GameController {
                 
             case PUZZLE_SOLVED:
                 view.hidePuzzleView();
-                view.applyViewUpdates(result.getViewUpdates());
                 
                 // Handle guard puzzle - remove popsicle when bribed
                 if (result.getPuzzleId() != null && result.getPuzzleId().equals("queueGaurdPuzzle")) {
@@ -196,11 +196,6 @@ public class GameController {
             case NONE:
                 // No action needed
                 break;
-        }
-        
-        // Apply any view updates
-        if (!result.getViewUpdates().isEmpty()) {
-            view.applyViewUpdates(result.getViewUpdates());
         }
     }
 
@@ -359,6 +354,9 @@ public class GameController {
         
         // Add to player inventory
         player.getInventory().addItem(document);
+        
+        // Update inventory view to show the new item
+        view.updateInventory(player.getInventory(), getCurrentRoom().getInventory());
         
         // Show overlay message
         view.showMessageOverlay(

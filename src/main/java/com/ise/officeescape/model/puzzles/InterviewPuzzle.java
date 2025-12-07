@@ -262,9 +262,7 @@ public class InterviewPuzzle extends Puzzle {
 
         if (passed) {
             setSolved(true);
-            InteractionResult result = InteractionResult.puzzleSolved(getId());
-            result.addViewUpdate("showMessage:Congratulations! You passed the interview!");
-            return result;
+            return InteractionResult.puzzleSolved(getId());
         } else {
             // Reset interview to try again
             resetInterview();

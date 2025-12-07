@@ -1,6 +1,8 @@
 package com.ise.officeescape.view;
 
 import com.ise.officeescape.eventSystem.*;
+import com.ise.officeescape.model.Inventory;
+import com.ise.officeescape.model.Item;
 import com.ise.officeescape.model.Room;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
@@ -175,20 +177,6 @@ public class GameView extends StackPane {
     }
 
     /**
-     * Updates just the background (for simple room changes without hotspots).
-     */
-    public void updateRoomBackground(Room room) {
-        Image roomImage = roomImageMapper.loadRoomImage(room);
-        if (roomImage != null) {
-            backgroundImage.setImage(roomImage);
-        }
-
-        if (room != null) {
-            directionControllerView.updateButtonState(room.getAllExits());
-        }
-    }
-
-    /**
      * Adds a clickable hotspot to the view.
      * Hotspots use absolute positioning - they will scale proportionally with window resize.
      */
@@ -221,32 +209,26 @@ public class GameView extends StackPane {
         System.out.println("[GameView]   Button created at: (" + hotspotButton.getLayoutX() + ", " + hotspotButton.getLayoutY() + ")");
         System.out.println("[GameView]   Button size: " + hotspotButton.getWidth() + " x " + hotspotButton.getHeight());
 
-        // Make it visible with border for debugging
+        // Make it completely transparent (no visible outline)
         hotspotButton.setStyle(
-            "-fx-background-color: rgba(255, 0, 0, 0.1); " +  // Light red background for visibility
-            "-fx-border-color: #FF0000; " +  // Red border
-            "-fx-border-width: 2; " +
-            "-fx-border-style: solid; " +
+            "-fx-background-color: transparent; " +
+            "-fx-border-color: transparent; " +
             "-fx-cursor: hand;"
         );
 
-        // Add hover effect (brighter highlight)
+        // Add subtle hover effect (optional - can be removed if not needed)
         hotspotButton.setOnMouseEntered(e -> {
             hotspotButton.setStyle(
-                "-fx-background-color: rgba(255, 255, 0, 0.2); " +  // Yellow highlight on hover
-                "-fx-border-color: #FFFF00; " +  // Yellow border on hover
-                "-fx-border-width: 3; " +
-                "-fx-border-style: solid; " +
+                "-fx-background-color: rgba(255, 255, 255, 0.05); " +  // Very subtle highlight on hover
+                "-fx-border-color: transparent; " +
                 "-fx-cursor: hand;"
             );
         });
 
         hotspotButton.setOnMouseExited(e -> {
             hotspotButton.setStyle(
-                "-fx-background-color: rgba(255, 0, 0, 0.1); " +  // Back to red
-                "-fx-border-color: #FF0000; " +
-                "-fx-border-width: 2; " +
-                "-fx-border-style: solid; " +
+                "-fx-background-color: transparent; " +
+                "-fx-border-color: transparent; " +
                 "-fx-cursor: hand;"
             );
         });
@@ -281,16 +263,6 @@ public class GameView extends StackPane {
     }
 
     /**
-     * Updates hotspot state (enable/disable).
-     */
-    public void updateHotspot(String hotspotId, boolean enabled) {
-        Button button = hotspotButtons.get(hotspotId);
-        if (button != null) {
-            button.setDisable(!enabled);
-        }
-    }
-
-    /**
      * Shows a puzzle view overlay.
      */
     public void showPuzzleView(PuzzleView puzzleView) {
@@ -311,24 +283,6 @@ public class GameView extends StackPane {
         if (currentPuzzleView != null) {
             getChildren().remove(currentPuzzleView);
             currentPuzzleView = null;
-        }
-    }
-
-    /**
-     * Applies view updates from interaction results (animations, enabling/disabling hotspots, etc.).
-     */
-    public void applyViewUpdates(java.util.List<String> updates) {
-        for (String update : updates) {
-            if (update.startsWith("enableHotspot:")) {
-                String hotspotId = update.substring("enableHotspot:".length());
-                updateHotspot(hotspotId, true);
-            } else if (update.startsWith("disableHotspot:")) {
-                String hotspotId = update.substring("disableHotspot:".length());
-                updateHotspot(hotspotId, false);
-            } else if (update.startsWith("playAnimation:")) {
-                // TODO: Implement animation playback
-                String animationId = update.substring("playAnimation:".length());
-            }
         }
     }
 
@@ -372,8 +326,7 @@ public class GameView extends StackPane {
     /**
      * Updates the inventory view with current player and room inventories.
      */
-    public void updateInventory(com.ise.officeescape.model.Inventory playerInventory, 
-         com.ise.officeescape.model.Inventory roomInventory) {
+    public void updateInventory(Inventory playerInventory, Inventory roomInventory) {
         inventoryView.updateInventories(playerInventory, roomInventory);
         // Set callback to refresh when items are moved (will be called from controller)
     }
@@ -383,7 +336,7 @@ public class GameView extends StackPane {
      * This allows the controller to refresh the inventory display.
      * @param callback A function that receives (item, fromRoomInventory)
      */
-    public void setInventoryChangeCallback(java.util.function.BiConsumer<com.ise.officeescape.model.Item, Boolean> callback) {
+    public void setInventoryChangeCallback(java.util.function.BiConsumer<Item, Boolean> callback) {
         inventoryView.setOnInventoryChanged(callback);
     }
 

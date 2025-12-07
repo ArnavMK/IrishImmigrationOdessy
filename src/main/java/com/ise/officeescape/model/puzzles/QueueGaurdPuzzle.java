@@ -304,8 +304,7 @@ public class QueueGaurdPuzzle extends Puzzle {
             solved = true;
             // Return result that will remove popsicle and allow player to proceed
             return InteractionResult.puzzleSolved("queueGaurdPuzzle")
-                .addDialogue("The guard accepts your bribe!")
-                .addViewUpdate("enableHotspot:nextRoom"); // Could enable next room or move player
+                .addDialogue("The guard accepts your bribe!");
         }
         
         // Move to next node
